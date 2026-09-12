@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>車資計算器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #000000;
+        }
+
+        .app-container {
+            width: 375px;
+            background-color: #0d0d0d;
+            border-radius: 30px;
+            padding: 20px 16px 24px 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.05);
+            border: 1px solid #1a1a1a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 頂部：車資 & 附加費 */
+        .top-inputs {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .input-card {
+            flex: 1;
+            background-color: #1c1c1e;
+            border-radius: 16px;
+            padding: 12px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .input-card.active {
+            border-color: #1a73e8;
+            background-color: #141820;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #8e8e93;
+            margin-bottom: 6px;
+        }
+
+        .card-header span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .input-card.active .card-header span {
+            color: #1a73e8;
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .input-card.active .card-value {
+            color: #1a73e8;
+        }
+
+        .fare-value-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 快捷按鈕區 */
+        .surcharge-quick-btns {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-add-val {
+            flex: 1;
+            height: 36px;
+            background-color: #2c2c2e;
+            color: #1a73e8;
+            border: 1px solid rgba(26, 115, 232, 0.2);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.15s ease;
+        }
+
+        .btn-add-val:active {
+            background-color: #1a73e8 !important;
+            color: #ffffff !important;
+            transform: scale(0.95);
+            box-shadow: 0 0 8px rgba(26, 115, 232, 0.6);
+        }
+
+        /* 中間：折扣按鈕 (85 / 90 / 100) */
+        .discount-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .discount-btn {
+            flex: 1;
+            height: 48px;
+            background-color: #1c1c1e;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .discount-btn:active {
+            transform: scale(0.96);
+        }
+
+        .discount-btn.active {
+            border-color: #1a73e8;
+            background-color: #141820;
+            color: #ffffff;
+        }
+
+        /* 應收金額卡片 */
+        .total-card {
+            background-color: #1c1c1e;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .total-card.plus-active {
+            border-color: #30d158;
+            background-color: #141f17;
+        }
+
+        .total-header {
+            width: 100%;
+            font-size: 0.85rem;
+            color: #8e8e93;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .discount-saved-text {
+            color: #ff453a;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .total-amount {
+            text-align: center;
+            font-size: 4.0rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-top: 2px;
+            margin-bottom: 0px;
+            line-height: 1.05;
+        }
+
+        .total-amount span.currency-symbol {
+            font-size: 2.6rem;
+            color: #ffffff;
+            margin-right: 4px;
+        }
+
+        /* 數字鍵盤 */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .key-btn {
+            height: 56px;
+            background-color: #1c1c1e;
+            border: none;
+            border-radius: 16px;
+            color: #ffffff;
+            font-size: 1.6rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.1s ease;
+        }
+
+        .key-btn:active {
+            background-color: #3a3a3c;
+        }
+
+        .key-btn-blue {
+            background-color: #1a73e8;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .key-btn-blue:active {
+            background-color: #1557b0;
+        }
+
+        .key-btn-blue-outline {
+            background-color: #141820;
+            border: 1px solid #1a73e8;
+            color: #1a73e8;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .key-btn-blue-outline:active {
+            background-color: #1a73e8;
+            color: #ffffff;
+        }
+
+        .key-btn-orange {
+            background-color: #d97706;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .key-btn-orange:active {
+            background-color: #b45309;
+        }
+
+        .key-btn.plus-key-active {
+            background-color: #30d158;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        /* Pop-up Window (Modal) 通用樣式 */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            width: 88%;
+            max-height: 85%;
+            background-color: #1c1c1e;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2c2c2e;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            color: #8e8e93;
+            margin-bottom: 12px;
+        }
+
+        /* 找續專用樣式 */
+        .modal-formula {
+            font-size: 0.95rem;
+            color: #a1a1a6;
+            background-color: #2c2c2e;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-formula input {
+            width: 70px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #1a73e8;
+            color: #30d158;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            outline: none;
+        }
+
+        .paid-quick-btns {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-paid-quick {
+            flex: 1;
+            height: 38px;
+            background-color: #2c2c2e;
+            color: #ffffff;
+            border: 1px solid #3a3a3c;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-paid-quick:active, .btn-paid-quick.active {
+            background-color: #1a73e8;
+            border-color: #1a73e8;
+            color: #ffffff;
+        }
+
+        .modal-change-result {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #30d158;
+            margin: 8px 0 16px 0;
+        }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .modal-close-btn {
+            flex: 1;
+            height: 46px;
+            background-color: #1a73e8;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .modal-close-btn:active {
+            background-color: #1557b0;
+        }
+
+        .modal-clear-btn {
+            flex: 1;
+            height: 46px;
+            background-color: #2c2c2e;
+            color: #ff453a;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .modal-clear-btn:active {
+            background-color: #3a1c1c;
+        }
+
+        /* 記帳專用樣式 */
+        .total-record-card {
+            background-color: #2c2c2e;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: left;
+            border-left: 4px solid #ff453a;
+        }
+
+        .total-record-title {
+            font-size: 0.75rem;
+            color: #8e8e93;
+            margin-bottom: 4px;
+        }
+
+        .total-record-val {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ff453a;
+        }
+
+        .total-record-detail {
+            font-size: 0.8rem;
+            color: #a1a1a6;
+            margin-top: 2px;
+        }
+
+        .record-list-container {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 180px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background-color: #141820;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #2c2c2e;
+            font-size: 0.9rem;
+            color: #ffffff;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .record-time {
+            font-size: 0.75rem;
+            color: #8e8e93;
+        }
+
+        .empty-records {
+            color: #8e8e93;
+            font-size: 0.9rem;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        /* 普通計算機 (埋數) 專用放大樣式 */
+        .calc-modal-content {
+            width: 95% !important;
+            max-width: 350px;
+            padding: 22px 18px !important;
+        }
+
+        .calc-screen {
+            background-color: #141820;
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-align: right;
+            margin-bottom: 10px;
+            border: 1px solid #2c2c2e;
+        }
+
+        .calc-expression {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            min-height: 20px;
+            word-break: break-all;
+        }
+
+        .calc-current {
+            font-size: 2.6rem;
+            font-weight: bold;
+            color: #ffffff;
+            word-break: break-all;
+        }
+
+        /* 埋數計數器內建已記帳顯示與按鈕 */
+        .calc-recorded-bar {
+            background-color: #2c2c2e;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #3a3a3c;
+        }
+
+        .calc-recorded-info {
+            text-align: left;
+        }
+
+        .calc-recorded-label {
+            font-size: 0.75rem;
+            color: #8e8e93;
+        }
+
+        .calc-recorded-val {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #ff453a;
+        }
+
+        .calc-recorded-btn {
+            background-color: #1a73e8;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .calc-recorded-btn:active {
+            background-color: #1557b0;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .calc-btn {
+            height: 52px;
+            background-color: #2c2c2e;
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calc-btn:active {
+            background-color: #3a3a3c;
+        }
+
+        .calc-btn-op {
+            background-color: #3a3a3c;
+            color: #d97706;
+        }
+
+        .calc-btn-eq {
+            background-color: #1a73e8;
+            color: #ffffff;
+        }
+
+        .calc-btn-eq:active {
+            background-color: #1557b0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 頂部卡片：車資 & 附加費 -->
+    <div class="top-inputs">
+        <div class="input-card active" id="fare-card" onclick="setActiveInput('fare')">
+            <div class="card-header">
+                <span>💲 車資</span>
+            </div>
+            <div class="fare-value-container">
+                <div class="card-value" id="fare-display">$0.0</div>
+            </div>
+        </div>
+
+        <div class="input-card" id="surcharge-card" onclick="setActiveInput('surcharge')">
+            <div>
+                <div class="card-header">
+                    <span>➕ 附加費</span>
+                </div>
+                <div class="card-value" id="surcharge-display">$0.0</div>
+            </div>
+            <div class="surcharge-quick-btns">
+                <button class="btn-add-val" onclick="addSurcharge(8); event.stopPropagation();">+8</button>
+                <button class="btn-add-val" onclick="addSurcharge(20); event.stopPropagation();">+20</button>
+                <button class="btn-add-val" onclick="addSurcharge(25); event.stopPropagation();">+25</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 中間：折扣按鈕 (85 / 90 / 100) -->
+    <div class="discount-options">
+        <button class="discount-btn active" id="btn-85" onclick="setDiscount(0.85, 'btn-85')">85</button>
+        <button class="discount-btn" id="btn-90" onclick="setDiscount(0.90, 'btn-90')">90</button>
+        <button class="discount-btn" id="btn-100" onclick="setDiscount(1.00, 'btn-100')">100</button>
+    </div>
+
+    <!-- 應收金額顯示欄 -->
+    <div class="total-card" id="total-card-box">
+        <div class="total-header">
+            <span id="total-title-text">應收金額</span>
+            <span class="discount-saved-text" id="discount-saved"></span>
+        </div>
+        <div class="total-amount">
+            <span class="currency-symbol" id="total-currency">$</span><span id="total-display">0.0</span>
+        </div>
+    </div>
+
+    <!-- 數字鍵盤區 -->
+    <div class="keypad">
+        <button class="key-btn" onclick="appendNum('1')">1</button>
+        <button class="key-btn" onclick="appendNum('2')">2</button>
+        <button class="key-btn" onclick="appendNum('3')">3</button>
+
+        <button class="key-btn" onclick="appendNum('4')">4</button>
+        <button class="key-btn" onclick="appendNum('5')">5</button>
+        <button class="key-btn" onclick="appendNum('6')">6</button>
+
+        <button class="key-btn" onclick="appendNum('7')">7</button>
+        <button class="key-btn" onclick="appendNum('8')">8</button>
+        <button class="key-btn" onclick="appendNum('9')">9</button>
+
+        <button class="key-btn" id="btn-plus-mode" onclick="togglePlusMode()">+</button>
+        <button class="key-btn" onclick="appendNum('0')">0</button>
+        <button class="key-btn" onclick="deleteNum()">⌫</button>
+
+        <button class="key-btn" style="background-color: #2c2c2e; font-size: 1.05rem;" onclick="clearAll()">清除</button>
+        <button class="key-btn key-btn-blue-outline" onclick="openChangeModal()">💲 找續</button>
+        <button class="key-btn key-btn-blue" onclick="openRecordModal()">⊖ 記帳</button>
+    </div>
+
+    <!-- 埋數按鈕列在最下方 -->
+    <div style="margin-top: 10px;">
+        <button class="key-btn key-btn-orange" style="width: 100%; height: 46px;" onclick="openCalcModal()">🧮 埋數</button>
+    </div>
+
+    <!-- Pop-up Window 1: 找續彈窗 -->
+    <div class="modal-overlay" id="change-modal">
+        <div class="modal-content">
+            <div class="modal-title">找續金額</div>
+            
+            <div class="modal-formula">
+                <span>收取：$<input type="number" id="paid-input" value="500" oninput="recalculateChange(); updatePaidBtns();"></span>
+                <span>應收：$<span id="modal-due">0.0</span></span>
+            </div>
+
+            <div class="paid-quick-btns">
+                <button class="btn-paid-quick" id="btn-paid-100" onclick="setPaidAmount(100)">$100</button>
+                <button class="btn-paid-quick" id="btn-paid-200" onclick="setPaidAmount(200)">$200</button>
+                <button class="btn-paid-quick active" id="btn-paid-500" onclick="setPaidAmount(500)">$500</button>
+            </div>
+
+            <div class="modal-change-result" id="modal-change-value">$0</div>
+            
+            <button class="modal-close-btn" onclick="closeChangeModal()">確定 / 關閉</button>
+        </div>
+    </div>
+
+    <!-- Pop-up Window 2: 記帳彈窗 -->
+    <div class="modal-overlay" id="record-modal">
+        <div class="modal-content">
+            <div class="modal-title">帳目紀錄</div>
+            
+            <!-- 記帳累計區塊 -->
+            <div class="total-record-card" id="total-record-card-box">
+                <div class="total-record-title">記帳累計總額</div>
+                <div class="total-record-val" id="cumulative-total-amount">-$0.0</div>
+                <div class="total-record-detail" id="cumulative-total-detail">共 0 筆帳目</div>
+            </div>
+
+            <!-- 歷史帳目清單 -->
+            <div class="record-list-container" id="record-list">
+                <div class="empty-records">暫無帳目紀錄</div>
+            </div>
+
+            <!-- 按鈕組：清除 & 關閉 -->
+            <div class="modal-btn-group">
+                <button class="modal-clear-btn" onclick="clearRecords()">清除紀錄</button>
+                <button class="modal-close-btn" onclick="closeRecordModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pop-up Window 3: 埋數普通計算機彈窗 -->
+    <div class="modal-overlay" id="calc-modal">
+        <div class="modal-content calc-modal-content">
+            <div class="modal-title">埋數計算機</div>
+            
+            <!-- 已記帳數目顯示與帶入按鈕 -->
+            <div class="calc-recorded-bar">
+                <div class="calc-recorded-info">
+                    <div class="calc-recorded-label">已記帳累計數目</div>
+                    <div class="calc-recorded-val" id="calc-recorded-display">-$0.0</div>
+                </div>
+                <button class="calc-recorded-btn" onclick="useRecordedInCalc()">帶入計算</button>
+            </div>
+
+            <div class="calc-screen">
+                <div class="calc-expression" id="calc-expression"></div>
+                <div class="calc-current" id="calc-current">0</div>
+            </div>
+
+            <div class="calc-grid">
+                <button class="calc-btn calc-btn-op" onclick="calcClear()">C</button>
+                <button class="calc-btn calc-btn-op" onclick="calcDelete()">⌫</button>
+                <button class="calc-btn calc-btn-op" onclick="calcAppendOp('/')">÷</button>
+                <button class="calc-btn calc-btn-op" onclick="calcAppendOp('*')">×</button>
+
+                <button class="calc-btn" onclick="calcAppendNum('7')">7</button>
+                <button class="calc-btn" onclick="calcAppendNum('8')">8</button>
+                <button class="calc-btn" onclick="calcAppendNum('9')">9</button>
+                <button class="calc-btn calc-btn-op" onclick="calcAppendOp('-')">-</button>
+
+                <button class="calc-btn" onclick="calcAppendNum('4')">4</button>
+                <button class="calc-btn" onclick="calcAppendNum('5')">5</button>
+                <button class="calc-btn" onclick="calcAppendNum('6')">6</button>
+                <button class="calc-btn calc-btn-op" onclick="calcAppendOp('+')">+</button>
+
+                <button class="calc-btn" onclick="calcAppendNum('1')">1</button>
+                <button class="calc-btn" onclick="calcAppendNum('2')">2</button>
+                <button class="calc-btn" onclick="calcAppendNum('3')">3</button>
+                <button class="calc-btn calc-btn-eq" style="grid-row: span 2; height: 110px;" onclick="calcCalculate()">=</button>
+
+                <button class="calc-btn" onclick="calcAppendNum('0')" style="grid-column: span 2;">0</button>
+                <button class="calc-btn" onclick="calcAppendDot()">.</button>
+            </div>
+
+            <div class="modal-btn-group" style="margin-top: 14px;">
+                <button class="modal-close-btn" onclick="closeCalcModal()">關閉計算機</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeTarget = 'fare'; 
+    let fareRaw = '0';
+    let surchargeRaw = '0';
+    let discountRate = 0.85;
+
+    // + 模式相關變數
+    let isPlusMode = false;
+    let plusRaw = '0';
+
+    // 帳目紀錄陣列
+    let records = [];
+
+    const fareCard = document.getElementById('fare-card');
+    const surchargeCard = document.getElementById('surcharge-card');
+    const fareDisplay = document.getElementById('fare-display');
+    const surchargeDisplay = document.getElementById('surcharge-display');
+    const totalDisplay = document.getElementById('total-display');
+    const discountSaved = document.getElementById('discount-saved');
+    const totalCardBox = document.getElementById('total-card-box');
+    const totalTitleText = document.getElementById('total-title-text');
+    const totalCurrency = document.getElementById('total-currency');
+    const btnPlusMode = document.getElementById('btn-plus-mode');
+
+    // 找續彈窗元素
+    const changeModal = document.getElementById('change-modal');
+    const paidInput = document.getElementById('paid-input');
+    const modalDue = document.getElementById('modal-due');
+    const modalChangeValue = document.getElementById('modal-change-value');
+
+    // 記帳彈窗元素
+    const recordModal = document.getElementById('record-modal');
+    const totalRecordCardBox = document.getElementById('total-record-card-box');
+    const cumulativeTotalAmount = document.getElementById('cumulative-total-amount');
+    const cumulativeTotalDetail = document.getElementById('cumulative-total-detail');
+    const recordList = document.getElementById('record-list');
+
+    // 計算機彈窗元素
+    const calcModal = document.getElementById('calc-modal');
+    const calcExpression = document.getElementById('calc-expression');
+    const calcCurrent = document.getElementById('calc-current');
+    const calcRecordedDisplay = document.getElementById('calc-recorded-display');
+    let calcStr = '0';
+    let calcExpStr = '';
+
+    function setActiveInput(target) {
+        if (isPlusMode) return; 
+        activeTarget = target;
+        if (target === 'fare') {
+            fareCard.classList.add('active');
+            surchargeCard.classList.remove('active');
+        } else {
+            surchargeCard.classList.add('active');
+            fareCard.classList.remove('active');
+        }
+    }
+
+    function togglePlusMode() {
+        isPlusMode = !isPlusMode;
+        if (isPlusMode) {
+            plusRaw = '0';
+            btnPlusMode.classList.add('plus-key-active');
+            totalCardBox.classList.add('plus-active');
+            totalTitleText.innerText = '加數輸入';
+            totalCurrency.innerText = '+';
+        } else {
+            btnPlusMode.classList.remove('plus-key-active');
+            totalCardBox.classList.remove('plus-active');
+            totalTitleText.innerText = '應收金額';
+            totalCurrency.innerText = '$';
+        }
+        updateUI();
+    }
+
+    function appendNum(num) {
+        if (isPlusMode) {
+            if (plusRaw === '0') {
+                plusRaw = num;
+            } else {
+                plusRaw += num;
+            }
+            updateUI();
+            return;
+        }
+
+        let currentRaw = activeTarget === 'fare' ? fareRaw : surchargeRaw;
+
+        if (currentRaw === '0') {
+            currentRaw = num;
+        } else {
+            currentRaw += num;
+        }
+
+        if (activeTarget === 'fare') {
+            fareRaw = currentRaw;
+        } else {
+            surchargeRaw = currentRaw;
+        }
+
+        updateUI();
+    }
+
+    function addSurcharge(val) {
+        if (isPlusMode) return;
+        let currentVal = (parseInt(surchargeRaw) || 0) / 10;
+        currentVal += val;
+        surchargeRaw = Math.round(currentVal * 10).toString();
+        
+        setActiveInput('surcharge');
+        updateUI();
+    }
+
+    function deleteNum() {
+        if (isPlusMode) {
+            if (plusRaw.length <= 1) {
+                plusRaw = '0';
+            } else {
+                plusRaw = plusRaw.slice(0, -1);
+            }
+            updateUI();
+            return;
+        }
+
+        let currentRaw = activeTarget === 'fare' ? fareRaw : surchargeRaw;
+        
+        if (currentRaw.length <= 1) {
+            currentRaw = '0';
+        } else {
+            currentRaw = currentRaw.slice(0, -1);
+        }
+
+        if (activeTarget === 'fare') {
+            fareRaw = currentRaw;
+        } else {
+            surchargeRaw = currentRaw;
+        }
+
+        updateUI();
+    }
+
+    function clearAll() {
+        fareRaw = '0';
+        surchargeRaw = '0';
+        plusRaw = '0';
+        isPlusMode = false;
+        btnPlusMode.classList.remove('plus-key-active');
+        totalCardBox.classList.remove('plus-active');
+        totalTitleText.innerText = '應收金額';
+        totalCurrency.innerText = '$';
+        setDiscount(0.85, 'btn-85');
+        setActiveInput('fare');
+        updateUI();
+    }
+
+    function setDiscount(rate, btnId) {
+        if (isPlusMode) return;
+        discountRate = rate;
+        document.querySelectorAll('.discount-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(btnId).classList.add('active');
+        updateUI();
+    }
+
+    function updateUI() {
+        if (isPlusMode) {
+            const plusVal = parseInt(plusRaw) || 0;
+            totalDisplay.innerText = plusVal.toString();
+            discountSaved.innerText = '';
+            return;
+        }
+
+        const fareVal = (parseInt(fareRaw) || 0) / 10;
+        const surchargeVal = (parseInt(surchargeRaw) || 0) / 10;
+
+        fareDisplay.innerText = `$${fareVal.toFixed(1)}`;
+        surchargeDisplay.innerText = `$${surchargeVal.toFixed(1)}`;
+
+        const savedAmount = fareVal * (1 - discountRate);
+
+        if (savedAmount > 0) {
+            discountSaved.innerText = `-$${savedAmount.toFixed(1)}`;
+        } else {
+            discountSaved.innerText = '';
+        }
+
+        const total = (fareVal * discountRate) + surchargeVal;
+        totalDisplay.innerText = total.toFixed(1);
+    }
+
+    /* Pop-up Window 1: 找續邏輯 */
+    function openChangeModal() {
+        if (isPlusMode) return;
+        const total = parseFloat(totalDisplay.innerText);
+        modalDue.innerText = total.toFixed(1);
+        setPaidAmount(500);
+        changeModal.classList.add('show');
+    }
+
+    function setPaidAmount(amt) {
+        paidInput.value = amt;
+        updatePaidBtns();
+        recalculateChange();
+    }
+
+    function updatePaidBtns() {
+        const val = parseInt(paidInput.value);
+        document.querySelectorAll('.btn-paid-quick').forEach(b => b.classList.remove('active'));
+        if (val === 100) document.getElementById('btn-paid-100').classList.add('active');
+        if (val === 200) document.getElementById('btn-paid-200').classList.add('active');
+        if (val === 500) document.getElementById('btn-paid-500').classList.add('active');
+    }
+
+    function recalculateChange() {
+        const total = parseFloat(totalDisplay.innerText);
+        const paid = parseFloat(paidInput.value) || 0;
+        const changeExact = paid - total;
+
+        if (changeExact < 0) {
+            modalChangeValue.style.color = '#ff453a';
+            modalChangeValue.innerText = `短缺 $${Math.round(Math.abs(changeExact))}`;
+        } else {
+            modalChangeValue.style.color = '#30d158';
+            modalChangeValue.innerText = `$${Math.round(changeExact)}`;
+        }
+    }
+
+    function closeChangeModal() {
+        changeModal.classList.remove('show');
+    }
+
+    /* Pop-up Window 2: 記帳邏輯 */
+    function openRecordModal() {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+        if (isPlusMode) {
+            const plusVal = parseInt(plusRaw) || 0;
+            if (plusVal > 0) {
+                const newRecord = {
+                    isSpecialPlus: true,
+                    value: plusVal,
+                    displayValue: `+$${plusVal}.0`,
+                    time: timeStr
+                };
+                records.unshift(newRecord);
+                togglePlusMode(); 
+            }
+        } else {
+            const fareVal = (parseInt(fareRaw) || 0) / 10;
+
+            if (fareVal > 0) {
+                const savedAmount = fareVal * (1 - discountRate); 
+                const newRecord = {
+                    isSpecialPlus: false,
+                    isSpecialSurcharge: false,
+                    saved: savedAmount, 
+                    fare: fareVal.toFixed(1),
+                    discount: Math.round(discountRate * 100),
+                    time: timeStr
+                };
+                records.unshift(newRecord); 
+                clearAll(); 
+            }
+        }
+
+        renderRecords();
+        recordModal.classList.add('show');
+    }
+
+    function calculateTotalSum() {
+        let totalSum = 0;
+        records.forEach(item => {
+            if (item.isSpecialPlus || item.isSpecialSurcharge) {
+                totalSum += item.value; 
+            } else {
+                totalSum -= item.saved; 
+            }
+        });
+        return totalSum;
+    }
+
+    function renderRecords() {
+        const totalSum = calculateTotalSum();
+
+        if (records.length === 0) {
+            cumulativeTotalAmount.innerText = '-$0.0';
+            cumulativeTotalAmount.style.color = '#ff453a';
+            totalRecordCardBox.style.borderLeftColor = '#ff453a';
+            cumulativeTotalDetail.innerText = '共 0 筆帳目';
+            recordList.innerHTML = '<div class="empty-records">暫無帳目紀錄</div>';
+            return;
+        }
+        
+        if (totalSum >= 0) {
+            cumulativeTotalAmount.innerText = `+$${totalSum.toFixed(1)}`;
+            cumulativeTotalAmount.style.color = '#30d158';
+            totalRecordCardBox.style.borderLeftColor = '#30d158';
+        } else {
+            cumulativeTotalAmount.innerText = `-$${Math.abs(totalSum).toFixed(1)}`;
+            cumulativeTotalAmount.style.color = '#ff453a';
+            totalRecordCardBox.style.borderLeftColor = '#ff453a';
+        }
+        cumulativeTotalDetail.innerText = `共 ${records.length} 筆帳目`;
+
+        let listHTML = '';
+        records.forEach((item, index) => {
+            if (item.isSpecialPlus) {
+                listHTML += `
+                    <div class="record-item">
+                        <div>
+                            <strong>#${records.length - index}</strong> - 加數輸入
+                            <div class="record-time">${item.time}</div>
+                        </div>
+                        <div style="font-weight: bold; color: #30d158;">${item.displayValue}</div>
+                    </div>
+                `;
+            } else if (item.isSpecialSurcharge) {
+                listHTML += `
+                    <div class="record-item">
+                        <div>
+                            <strong>#${records.length - index}</strong> - 附加費快捷鍵
+                            <div class="record-time">${item.time}</div>
+                        </div>
+                        <div style="font-weight: bold; color: #30d158;">${item.displayValue}</div>
+                    </div>
+                `;
+            } else {
+                listHTML += `
+                    <div class="record-item">
+                        <div>
+                            <strong>#${records.length - index}</strong> - 車資 $${item.fare} (${item.discount}折)
+                            <div class="record-time">${item.time}</div>
+                        </div>
+                        <div style="font-weight: bold; color: #ff453a;">-$${item.saved.toFixed(1)}</div>
+                    </div>
+                `;
+            }
+        });
+        recordList.innerHTML = listHTML;
+    }
+
+    function clearRecords() {
+        records = [];
+        renderRecords();
+        closeRecordModal();
+    }
+
+    function closeRecordModal() {
+        recordModal.classList.remove('show');
+    }
+
+    /* Pop-up Window 3: 埋數計算機邏輯 */
+    function openCalcModal() {
+        calcClear();
+        // 更新計算機內的已記帳數目顯示
+        const totalSum = calculateTotalSum();
+        if (totalSum >= 0) {
+            calcRecordedDisplay.innerText = `+$${totalSum.toFixed(1)}`;
+            calcRecordedDisplay.style.color = '#30d158';
+        } else {
+            calcRecordedDisplay.innerText = `-$${Math.abs(totalSum).toFixed(1)}`;
+            calcRecordedDisplay.style.color = '#ff453a';
+        }
+        calcModal.classList.add('show');
+    }
+
+    function closeCalcModal() {
+        calcModal.classList.remove('show');
+    }
+
+    // 將已記帳數目帶入計算 (修改為：若畫面上已有數字如2000，點擊後會變成 2000 - 已記帳數目)
+    function useRecordedInCalc() {
+        const totalSum = calculateTotalSum();
+        const absVal = Math.abs(totalSum).toString();
+
+        if (calcStr !== '0' && calcStr !== '') {
+            // 如果當前計算機已有輸入數值（例如 2000），則將其作為被減數，並加入減號和已記帳數目
+            calcExpStr += calcStr + ' - ';
+            calcExpression.innerText = calcExpStr;
+            calcStr = absVal;
+            calcCurrent.innerText = calcStr;
+        } else if (calcExpStr !== '') {
+            // 如果已經有運算式，則直接串接已記帳數目
+            calcStr = absVal;
+            calcCurrent.innerText = calcStr;
+        } else {
+            // 如果畫面上為0，則直接填入已記帳數目
+            calcStr = totalSum.toString();
+            calcCurrent.innerText = calcStr;
+        }
+    }
+
+    function calcAppendNum(num) {
+        if (calcStr === '0') {
+            calcStr = num;
+        } else {
+            calcStr += num;
+        }
+        calcCurrent.innerText = calcStr;
+    }
+
+    function calcAppendDot() {
+        if (!calcStr.includes('.')) {
+            calcStr += '.';
+            calcCurrent.innerText = calcStr;
+        }
+    }
+
+    function calcAppendOp(op) {
+        calcExpStr += calcStr + ' ' + op + ' ';
+        calcExpression.innerText = calcExpStr;
+        calcStr = '0';
+        calcCurrent.innerText = '0';
+    }
+
+    function calcClear() {
+        calcStr = '0';
+        calcExpStr = '';
+        calcExpression.innerText = '';
+        calcCurrent.innerText = '0';
+    }
+
+    function calcDelete() {
+        if (calcStr.length > 1) {
+            calcStr = calcStr.slice(0, -1);
+        } else {
+            calcStr = '0';
+        }
+        calcCurrent.innerText = calcStr;
+    }
+
+    function calcCalculate() {
+        try {
+            let fullExp = calcExpStr + calcStr;
+            let safeExp = fullExp.replace(/×/g, '*').replace(/÷/g, '/');
+            let result = eval(safeExp);
+            
+            if (result === undefined || isNaN(result) || !isFinite(result)) {
+                calcCurrent.innerText = '錯誤';
+            } else {
+                calcCurrent.innerText = Math.round(result * 100) / 100;
+                calcExpStr = '';
+                calcExpression.innerText = fullExp + ' =';
+                calcStr = calcCurrent.innerText;
+            }
+        } catch (e) {
+            calcCurrent.innerText = '錯誤';
+        }
+    }
+
+    updateUI();
+</script>
+
+</body>
+</html>
