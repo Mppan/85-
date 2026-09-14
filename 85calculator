@@ -2,8 +2,14 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>車資計算器</title>
+    <!-- 引入 PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="車資計算">
     <style>
         * {
             box-sizing: border-box;
@@ -155,6 +161,13 @@
             color: #ffffff;
         }
 
+        /* 100鍵進入記帳模式時的高亮樣式 */
+        .discount-btn.custom-record-active {
+            border-color: #ff9800 !important;
+            background-color: #261c14 !important;
+            color: #ff9800 !important;
+        }
+
         /* 應收金額卡片 */
         .total-card {
             background-color: #1c1c1e;
@@ -170,6 +183,11 @@
         .total-card.plus-active {
             border-color: #30d158;
             background-color: #141f17;
+        }
+
+        .total-card.custom-record-active-box {
+            border-color: #ff9800;
+            background-color: #261c14;
         }
 
         .total-header {
@@ -511,7 +529,6 @@
             word-break: break-all;
         }
 
-        /* 埋數計數器內建已記帳顯示與按鈕 */
         .calc-recorded-bar {
             background-color: #2c2c2e;
             border-radius: 10px;
@@ -596,7 +613,6 @@
 <body>
 
 <div class="app-container">
-    <!-- 頂部卡片：車資 & 附加費 -->
     <div class="top-inputs">
         <div class="input-card active" id="fare-card" onclick="setActiveInput('fare')">
             <div class="card-header">
@@ -622,14 +638,12 @@
         </div>
     </div>
 
-    <!-- 中間：折扣按鈕 (85 / 90 / 100) -->
     <div class="discount-options">
         <button class="discount-btn active" id="btn-85" onclick="setDiscount(0.85, 'btn-85')">85</button>
         <button class="discount-btn" id="btn-90" onclick="setDiscount(0.90, 'btn-90')">90</button>
-        <button class="discount-btn" id="btn-100" onclick="setDiscount(1.00, 'btn-100')">100</button>
+        <button class="discount-btn" id="btn-100" onclick="handle100Key()">100</button>
     </div>
 
-    <!-- 應收金額顯示欄 -->
     <div class="total-card" id="total-card-box">
         <div class="total-header">
             <span id="total-title-text">應收金額</span>
@@ -640,7 +654,6 @@
         </div>
     </div>
 
-    <!-- 數字鍵盤區 -->
     <div class="keypad">
         <button class="key-btn" onclick="appendNum('1')">1</button>
         <button class="key-btn" onclick="appendNum('2')">2</button>
@@ -663,51 +676,38 @@
         <button class="key-btn key-btn-blue" onclick="openRecordModal()">⊖ 記帳</button>
     </div>
 
-    <!-- 埋數按鈕列在最下方 -->
     <div style="margin-top: 10px;">
         <button class="key-btn key-btn-orange" style="width: 100%; height: 46px;" onclick="openCalcModal()">🧮 埋數</button>
     </div>
 
-    <!-- Pop-up Window 1: 找續彈窗 -->
     <div class="modal-overlay" id="change-modal">
         <div class="modal-content">
             <div class="modal-title">找續金額</div>
-            
             <div class="modal-formula">
                 <span>收取：$<input type="number" id="paid-input" value="500" oninput="recalculateChange(); updatePaidBtns();"></span>
                 <span>應收：$<span id="modal-due">0.0</span></span>
             </div>
-
             <div class="paid-quick-btns">
                 <button class="btn-paid-quick" id="btn-paid-100" onclick="setPaidAmount(100)">$100</button>
                 <button class="btn-paid-quick" id="btn-paid-200" onclick="setPaidAmount(200)">$200</button>
                 <button class="btn-paid-quick active" id="btn-paid-500" onclick="setPaidAmount(500)">$500</button>
             </div>
-
             <div class="modal-change-result" id="modal-change-value">$0</div>
-            
             <button class="modal-close-btn" onclick="closeChangeModal()">確定 / 關閉</button>
         </div>
     </div>
 
-    <!-- Pop-up Window 2: 記帳彈窗 -->
     <div class="modal-overlay" id="record-modal">
         <div class="modal-content">
             <div class="modal-title">帳目紀錄</div>
-            
-            <!-- 記帳累計區塊 -->
             <div class="total-record-card" id="total-record-card-box">
                 <div class="total-record-title">記帳累計總額</div>
                 <div class="total-record-val" id="cumulative-total-amount">-$0.0</div>
                 <div class="total-record-detail" id="cumulative-total-detail">共 0 筆帳目</div>
             </div>
-
-            <!-- 歷史帳目清單 -->
             <div class="record-list-container" id="record-list">
                 <div class="empty-records">暫無帳目紀錄</div>
             </div>
-
-            <!-- 按鈕組：清除 & 關閉 -->
             <div class="modal-btn-group">
                 <button class="modal-clear-btn" onclick="clearRecords()">清除紀錄</button>
                 <button class="modal-close-btn" onclick="closeRecordModal()">關閉</button>
@@ -715,12 +715,9 @@
         </div>
     </div>
 
-    <!-- Pop-up Window 3: 埋數普通計算機彈窗 -->
     <div class="modal-overlay" id="calc-modal">
         <div class="modal-content calc-modal-content">
             <div class="modal-title">埋數計算機</div>
-            
-            <!-- 已記帳數目顯示與帶入按鈕 -->
             <div class="calc-recorded-bar">
                 <div class="calc-recorded-info">
                     <div class="calc-recorded-label">已記帳累計數目</div>
@@ -728,12 +725,10 @@
                 </div>
                 <button class="calc-recorded-btn" onclick="useRecordedInCalc()">帶入計算</button>
             </div>
-
             <div class="calc-screen">
                 <div class="calc-expression" id="calc-expression"></div>
                 <div class="calc-current" id="calc-current">0</div>
             </div>
-
             <div class="calc-grid">
                 <button class="calc-btn calc-btn-op" onclick="calcClear()">C</button>
                 <button class="calc-btn calc-btn-op" onclick="calcDelete()">⌫</button>
@@ -758,7 +753,6 @@
                 <button class="calc-btn" onclick="calcAppendNum('0')" style="grid-column: span 2;">0</button>
                 <button class="calc-btn" onclick="calcAppendDot()">.</button>
             </div>
-
             <div class="modal-btn-group" style="margin-top: 14px;">
                 <button class="modal-close-btn" onclick="closeCalcModal()">關閉計算機</button>
             </div>
@@ -767,16 +761,26 @@
 </div>
 
 <script>
+    // 註冊 Service Worker 以支援 PWA 離線安裝
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker 註冊成功:', reg.scope))
+                .catch(err => console.log('Service Worker 註冊失敗:', err));
+        });
+    }
+
     let activeTarget = 'fare'; 
     let fareRaw = '0';
     let surchargeRaw = '0';
     let discountRate = 0.85;
 
-    // + 模式相關變數
     let isPlusMode = false;
     let plusRaw = '0';
 
-    // 帳目紀錄陣列
+    let isCustomRecordMode = false;
+    let customRecordRaw = '0';
+
     let records = [];
 
     const fareCard = document.getElementById('fare-card');
@@ -789,21 +793,19 @@
     const totalTitleText = document.getElementById('total-title-text');
     const totalCurrency = document.getElementById('total-currency');
     const btnPlusMode = document.getElementById('btn-plus-mode');
+    const btn100 = document.getElementById('btn-100');
 
-    // 找續彈窗元素
     const changeModal = document.getElementById('change-modal');
     const paidInput = document.getElementById('paid-input');
     const modalDue = document.getElementById('modal-due');
     const modalChangeValue = document.getElementById('modal-change-value');
 
-    // 記帳彈窗元素
     const recordModal = document.getElementById('record-modal');
     const totalRecordCardBox = document.getElementById('total-record-card-box');
     const cumulativeTotalAmount = document.getElementById('cumulative-total-amount');
     const cumulativeTotalDetail = document.getElementById('cumulative-total-detail');
     const recordList = document.getElementById('record-list');
 
-    // 計算機彈窗元素
     const calcModal = document.getElementById('calc-modal');
     const calcExpression = document.getElementById('calc-expression');
     const calcCurrent = document.getElementById('calc-current');
@@ -812,7 +814,7 @@
     let calcExpStr = '';
 
     function setActiveInput(target) {
-        if (isPlusMode) return; 
+        if (isPlusMode || isCustomRecordMode) return; 
         activeTarget = target;
         if (target === 'fare') {
             fareCard.classList.add('active');
@@ -824,6 +826,9 @@
     }
 
     function togglePlusMode() {
+        if (isCustomRecordMode) {
+            exitCustomRecordMode();
+        }
         isPlusMode = !isPlusMode;
         if (isPlusMode) {
             plusRaw = '0';
@@ -840,12 +845,50 @@
         updateUI();
     }
 
+    function handle100Key() {
+        if (isPlusMode) {
+            togglePlusMode();
+        }
+        
+        if (isCustomRecordMode) {
+            exitCustomRecordMode();
+        } else {
+            isCustomRecordMode = true;
+            customRecordRaw = '0';
+            btn100.classList.add('custom-record-active');
+            totalCardBox.classList.add('custom-record-active-box');
+            totalTitleText.innerText = '自定義記帳金額';
+            totalCurrency.innerText = '-$';
+            document.querySelectorAll('.discount-btn').forEach(btn => btn.classList.remove('active'));
+            updateUI();
+        }
+    }
+
+    function exitCustomRecordMode() {
+        isCustomRecordMode = false;
+        btn100.classList.remove('custom-record-active');
+        totalCardBox.classList.remove('custom-record-active-box');
+        totalTitleText.innerText = '應收金額';
+        totalCurrency.innerText = '$';
+        setDiscount(0.85, 'btn-85');
+    }
+
     function appendNum(num) {
         if (isPlusMode) {
             if (plusRaw === '0') {
                 plusRaw = num;
             } else {
                 plusRaw += num;
+            }
+            updateUI();
+            return;
+        }
+
+        if (isCustomRecordMode) {
+            if (customRecordRaw === '0') {
+                customRecordRaw = num;
+            } else {
+                customRecordRaw += num;
             }
             updateUI();
             return;
@@ -869,7 +912,7 @@
     }
 
     function addSurcharge(val) {
-        if (isPlusMode) return;
+        if (isPlusMode || isCustomRecordMode) return;
         let currentVal = (parseInt(surchargeRaw) || 0) / 10;
         currentVal += val;
         surchargeRaw = Math.round(currentVal * 10).toString();
@@ -884,6 +927,16 @@
                 plusRaw = '0';
             } else {
                 plusRaw = plusRaw.slice(0, -1);
+            }
+            updateUI();
+            return;
+        }
+
+        if (isCustomRecordMode) {
+            if (customRecordRaw.length <= 1) {
+                customRecordRaw = '0';
+            } else {
+                customRecordRaw = customRecordRaw.slice(0, -1);
             }
             updateUI();
             return;
@@ -910,9 +963,13 @@
         fareRaw = '0';
         surchargeRaw = '0';
         plusRaw = '0';
+        customRecordRaw = '0';
         isPlusMode = false;
+        isCustomRecordMode = false;
         btnPlusMode.classList.remove('plus-key-active');
+        btn100.classList.remove('custom-record-active');
         totalCardBox.classList.remove('plus-active');
+        totalCardBox.classList.remove('custom-record-active-box');
         totalTitleText.innerText = '應收金額';
         totalCurrency.innerText = '$';
         setDiscount(0.85, 'btn-85');
@@ -921,7 +978,7 @@
     }
 
     function setDiscount(rate, btnId) {
-        if (isPlusMode) return;
+        if (isPlusMode || isCustomRecordMode) return;
         discountRate = rate;
         document.querySelectorAll('.discount-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(btnId).classList.add('active');
@@ -932,6 +989,13 @@
         if (isPlusMode) {
             const plusVal = parseInt(plusRaw) || 0;
             totalDisplay.innerText = plusVal.toString();
+            discountSaved.innerText = '';
+            return;
+        }
+
+        if (isCustomRecordMode) {
+            const customVal = parseInt(customRecordRaw) || 0;
+            totalDisplay.innerText = customVal.toString();
             discountSaved.innerText = '';
             return;
         }
@@ -954,9 +1018,8 @@
         totalDisplay.innerText = total.toFixed(1);
     }
 
-    /* Pop-up Window 1: 找續邏輯 */
     function openChangeModal() {
-        if (isPlusMode) return;
+        if (isPlusMode || isCustomRecordMode) return;
         const total = parseFloat(totalDisplay.innerText);
         modalDue.innerText = total.toFixed(1);
         setPaidAmount(500);
@@ -995,12 +1058,23 @@
         changeModal.classList.remove('show');
     }
 
-    /* Pop-up Window 2: 記帳邏輯 */
     function openRecordModal() {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
-        if (isPlusMode) {
+        if (isCustomRecordMode) {
+            const customVal = parseInt(customRecordRaw) || 0;
+            if (customVal > 0) {
+                const newRecord = {
+                    isCustomRecord: true,
+                    value: customVal,
+                    displayValue: `-$${customVal}.0`,
+                    time: timeStr
+                };
+                records.unshift(newRecord);
+                clearAll();
+            }
+        } else if (isPlusMode) {
             const plusVal = parseInt(plusRaw) || 0;
             if (plusVal > 0) {
                 const newRecord = {
@@ -1020,6 +1094,7 @@
                 const newRecord = {
                     isSpecialPlus: false,
                     isSpecialSurcharge: false,
+                    isCustomRecord: false,
                     saved: savedAmount, 
                     fare: fareVal.toFixed(1),
                     discount: Math.round(discountRate * 100),
@@ -1039,6 +1114,8 @@
         records.forEach(item => {
             if (item.isSpecialPlus || item.isSpecialSurcharge) {
                 totalSum += item.value; 
+            } else if (item.isCustomRecord) {
+                totalSum -= item.value;
             } else {
                 totalSum -= item.saved; 
             }
@@ -1071,7 +1148,17 @@
 
         let listHTML = '';
         records.forEach((item, index) => {
-            if (item.isSpecialPlus) {
+            if (item.isCustomRecord) {
+                listHTML += `
+                    <div class="record-item">
+                        <div>
+                            <strong>#${records.length - index}</strong> - 自定義記帳
+                            <div class="record-time">${item.time}</div>
+                        </div>
+                        <div style="font-weight: bold; color: #ff453a;">${item.displayValue}</div>
+                    </div>
+                `;
+            } else if (item.isSpecialPlus) {
                 listHTML += `
                     <div class="record-item">
                         <div>
@@ -1116,10 +1203,8 @@
         recordModal.classList.remove('show');
     }
 
-    /* Pop-up Window 3: 埋數計算機邏輯 */
     function openCalcModal() {
         calcClear();
-        // 更新計算機內的已記帳數目顯示
         const totalSum = calculateTotalSum();
         if (totalSum >= 0) {
             calcRecordedDisplay.innerText = `+$${totalSum.toFixed(1)}`;
@@ -1135,23 +1220,19 @@
         calcModal.classList.remove('show');
     }
 
-    // 將已記帳數目帶入計算 (修改為：若畫面上已有數字如2000，點擊後會變成 2000 - 已記帳數目)
     function useRecordedInCalc() {
         const totalSum = calculateTotalSum();
         const absVal = Math.abs(totalSum).toString();
 
         if (calcStr !== '0' && calcStr !== '') {
-            // 如果當前計算機已有輸入數值（例如 2000），則將其作為被減數，並加入減號和已記帳數目
             calcExpStr += calcStr + ' - ';
             calcExpression.innerText = calcExpStr;
             calcStr = absVal;
             calcCurrent.innerText = calcStr;
         } else if (calcExpStr !== '') {
-            // 如果已經有運算式，則直接串接已記帳數目
             calcStr = absVal;
             calcCurrent.innerText = calcStr;
         } else {
-            // 如果畫面上為0，則直接填入已記帳數目
             calcStr = totalSum.toString();
             calcCurrent.innerText = calcStr;
         }
